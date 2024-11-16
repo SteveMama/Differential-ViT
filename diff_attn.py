@@ -81,3 +81,12 @@ class DifferentialAttention(nn.Module):
         attn1 = (q1 @ k1.transpose(-2, -1)) * self.scale
         attn2 = (q2 @ k2.transpose(-2, -1)) * self.scale
 
+        attn = F.softmax(attn1, dim=-1) - (self.get_lambda() * F.softmax(attn2, dim=-1))
+        attn = self.attn_drop(attn)
+
+        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = self.proj(x)
+        x = self.proj_drop(x)
+
+        return x
+
