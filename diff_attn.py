@@ -61,3 +61,23 @@ class DifferentialAttention(nn.Module):
         self.lambda_init = lambda_init
 
     def get_lambda(self):
+        lambda_val = (torch.exp(self.lambda_q1 * self.lambda_k1) -
+                     torch.exp(self.lambda_q2 * self.lambda_k2) +
+                     self.lambda_init)
+        return lambda_val.mean()
+
+    def forward(self, x):
+        B , N, C = x.shape
+        qkv = self.qkv(x).reshape(B, N, 3,
+                                  self.num_heads, C // self.num_heads)
+        qkv = qkv.permute(2, 0, 3, 1, 4)
+        q1, q2, k1, k2, v = qkv[0], qkv[0], qkv[1], qkv[1], qkv[2]
+
+        # Split into Queries and Keys
+
+        q1, q2 = q1.chunk(2, dim= -1)
+        k1, k2 = k1.chunk(2, dim=-1)
+
+        attn1 = (q1 @ k1.transpose(-2, -1)) * self.scale
+        attn2 = (q2 @ k2.transpose(-2, -1)) * self.scale
+
