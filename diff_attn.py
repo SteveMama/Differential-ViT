@@ -34,3 +34,30 @@ class PatchEmbedding(nn.Module):
         x = x + self.pos_embedding
 
         return x
+
+
+class DifferentialAttention(nn.Module):
+    def __init__(self, dim, num_heads = 8, qkv_bias = False, attn_drop= 0., proj_drop=0. , lambda_init=0.8):
+        super().__init__()
+        assert dim % num_heads == 0,'dim should be divisible by num_heads'
+
+        self.num_heads = num_heads
+        head_dim = dim // num_heads
+        self.scale = head_dim ** -0.5
+
+        # Query and Key Projections into Diff Attn
+        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.proj = nn.Linear(dim, dim)
+        self.proj_drop = nn.Dropout(proj_drop)
+
+        # introducing the Lambda Parameter
+        self.lambda_q1 = nn.Parameter(torch.randn(head_dim))
+        self.lambda_k1 = nn.Parameter(torch.randn(head_dim))
+
+        self.lambda_q2 = nn.Parameter(torch.randn(head_dim))
+        self.lambda_k2 = nn.Parameter(torch.randn(head_dim))
+
+        self.lambda_init = lambda_init
+
+    def get_lambda(self):
